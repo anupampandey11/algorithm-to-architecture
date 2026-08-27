@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hash Table 3D Learning Lab</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #0b1020;
+        color: #eef2ff;
+    }
+
+    header {
+        padding: 24px;
+        text-align: center;
+        background: #11182d;
+        border-bottom: 1px solid #29324f;
+    }
+
+    header h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+    }
+
+    header p {
+        margin: 0;
+        color: #aeb8d6;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 24px;
+    }
+
+    .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    input {
+        width: 150px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #394463;
+        background: #151d35;
+        color: white;
+        font-size: 16px;
+    }
+
+    button {
+        padding: 12px 18px;
+        border: none;
+        border-radius: 8px;
+        background: #5865f2;
+        color: white;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    button:hover {
+        opacity: 0.85;
+    }
+
+    .reset {
+        background: #9b3d50;
+    }
+
+    .info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .card {
+        background: #121a31;
+        border: 1px solid #293451;
+        border-radius: 12px;
+        padding: 18px;
+    }
+
+    .card h2 {
+        margin-top: 0;
+        font-size: 19px;
+    }
+
+    .formula {
+        font-size: 20px;
+        text-align: center;
+        padding: 16px;
+        background: #0b1020;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+
+    .status {
+        min-height: 60px;
+        line-height: 1.6;
+        color: #c9d2ee;
+    }
+
+    .table-area {
+        perspective: 900px;
+        overflow-x: auto;
+        padding: 40px 10px 60px;
+    }
+
+    .hash-table {
+        min-width: 700px;
+        display: flex;
+        gap: 22px;
+        justify-content: center;
+        transform: rotateX(10deg) rotateY(-5deg);
+        transform-style: preserve-3d;
+    }
+
+    .bucket {
+        width: 105px;
+        min-height: 190px;
+        background: linear-gradient(145deg, #1d2947, #11182c);
+        border: 1px solid #465477;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        box-shadow:
+            0 12px 0 #080c18,
+            0 20px 30px rgba(0,0,0,.45);
+        transform-style: preserve-3d;
+        transition: .3s;
+    }
+
+    .bucket:hover {
+        transform: translateY(-10px) rotateX(-5deg);
+    }
+
+    .bucket-index {
+        color: #9ca9cc;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .bucket-head {
+        padding: 9px;
+        border-radius: 8px;
+        background: #273557;
+        margin-bottom: 12px;
+        font-weight: bold;
+    }
+
+    .values {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .value {
+        padding: 10px 6px;
+        background: #5865f2;
+        border-radius: 7px;
+        font-weight: bold;
+        box-shadow: 0 5px 0 #333c9a;
+        animation: pop .35s ease;
+    }
+
+    .value.collision {
+        background: #d8873f;
+        box-shadow: 0 5px 0 #8d5423;
+    }
+
+    .value.found {
+        background: #38a169;
+        box-shadow: 0 5px 0 #246b46;
+        animation: pulse .8s infinite alternate;
+    }
+
+    .empty {
+        color: #64708f;
+        font-size: 13px;
+        margin-top: 20px;
+    }
+
+    .steps {
+        margin-top: 20px;
+    }
+
+    .step {
+        padding: 12px;
+        border-left: 3px solid #5865f2;
+        margin: 8px 0;
+        background: #151e36;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .legend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        color: #aeb8d6;
+        margin-top: 15px;
+    }
+
+    .legend span {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .normal {
+        background: #5865f2;
+    }
+
+    .collision-dot {
+        background: #d8873f;
+    }
+
+    .found-dot {
+        background: #38a169;
+    }
+
+    @keyframes pop {
+        from {
+            transform: scale(.5) translateZ(-30px);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1) translateZ(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes pulse {
+        from {
+            transform: scale(1);
+        }
+
+        to {
+            transform: scale(1.08);
+        }
+    }
+
+    @media (max-width: 700px) {
+        .info {
+            grid-template-columns: 1fr;
+        }
+
+        .hash-table {
+            justify-content: flex-start;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Hash Table 3D Learning Lab</h1>
+    <p>Build intuition by watching keys become bucket positions.</p>
+</header>
+
+<div class="container">
+
+    <div class="controls">
+
+        <input
+            id="keyInput"
+            type="number"
+            placeholder="Enter key"
+        >
+
+        <button id="insertBtn">
+            Insert
+        </button>
+
+        <button id="searchBtn">
+            Search
+        </button>
+
+        <button id="resetBtn" class="reset">
+            Reset
+        </button>
+
+    </div>
+
+    <div class="info">
+
+        <div class="card">
+
+            <h2>How hashing works</h2>
+
+            <p>
+                We use the hash function:
+            </p>
+
+            <div class="formula">
+                index = key % 7
+            </div>
+
+            <p>
+                The result tells us which bucket should contain the key.
+            </p>
+
+        </div>
+
+        <div class="card">
+
+            <h2>Current operation</h2>
+
+            <div id="status" class="status">
+                Enter a number and press Insert.
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="table-area">
+
+        <div id="hashTable" class="hash-table"></div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>What you should notice</h2>
+
+        <div id="steps" class="steps">
+
+            <div class="step">
+                <b>1.</b>
+                Take a key.
+            </div>
+
+            <div class="step">
+                <b>2.</b>
+                Apply the hash function.
+            </div>
+
+            <div class="step">
+                <b>3.</b>
+                Jump directly to that bucket.
+            </div>
+
+            <div class="step">
+                <b>4.</b>
+                If another key is already there, we have a collision.
+            </div>
+
+            <div class="step">
+                <b>5.</b>
+                Chaining lets multiple values live in the same bucket.
+            </div>
+
+        </div>
+
+        <div class="legend">
+            <span>
+                <i class="dot normal"></i>
+                Normal value
+            </span>
+
+            <span>
+                <i class="dot collision-dot"></i>
+                Collision
+            </span>
+
+            <span>
+                <i class="dot found-dot"></i>
+                Search result
+            </span>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const TABLE_SIZE = 7;
+
+const table = Array.from(
+    { length: TABLE_SIZE },
+    () => []
+);
+
+const tableElement =
+    document.getElementById("hashTable");
+
+const statusElement =
+    document.getElementById("status");
+
+const stepsElement =
+    document.getElementById("steps");
+
+const input =
+    document.getElementById("keyInput");
+
+function hash(key) {
+
+    return ((key % TABLE_SIZE) + TABLE_SIZE)
+        % TABLE_SIZE;
+
+}
+
+function render(foundKey = null) {
+
+    tableElement.innerHTML = "";
+
+    table.forEach((bucketValues, index) => {
+
+        const bucket =
+            document.createElement("div");
+
+        bucket.className = "bucket";
+
+        const indexElement =
+            document.createElement("div");
+
+        indexElement.className = "bucket-index";
+
+        indexElement.textContent =
+            `BUCKET ${index}`;
+
+        const head =
+            document.createElement("div");
+
+        head.className = "bucket-head";
+
+        head.textContent =
+            `index ${index}`;
+
+        const values =
+            document.createElement("div");
+
+        values.className = "values";
+
+        if (bucketValues.length === 0) {
+
+            const empty =
+                document.createElement("div");
+
+            empty.className = "empty";
+
+            empty.textContent = "empty";
+
+            values.appendChild(empty);
+
+        } else {
+
+            bucketValues.forEach((value, position) => {
+
+                const valueElement =
+                    document.createElement("div");
+
+                valueElement.className = "value";
+
+                if (position > 0) {
+
+                    valueElement.classList.add(
+                        "collision"
+                    );
+
+                }
+
+                if (value === foundKey) {
+
+                    valueElement.classList.add(
+                        "found"
+                    );
+
+                }
+
+                valueElement.textContent = value;
+
+                values.appendChild(valueElement);
+
+            });
+
+        }
+
+        bucket.appendChild(indexElement);
+        bucket.appendChild(head);
+        bucket.appendChild(values);
+
+        tableElement.appendChild(bucket);
+
+    });
+
+}
+
+function addStep(text) {
+
+    const step =
+        document.createElement("div");
+
+    step.className = "step";
+
+    step.textContent = text;
+
+    stepsElement.prepend(step);
+
+}
+
+function getKey() {
+
+    const key =
+        Number(input.value);
+
+    if (!Number.isFinite(key)) {
+
+        statusElement.textContent =
+            "Please enter a valid number.";
+
+        return null;
+    }
+
+    return Math.trunc(key);
+
+}
+
+function insert() {
+
+    const key = getKey();
+
+    if (key === null) {
+        return;
+    }
+
+    const index = hash(key);
+
+    statusElement.innerHTML = `
+        <b>Key:</b> ${key}<br>
+        <b>Hash calculation:</b>
+        ${key} % ${TABLE_SIZE} = ${index}<br>
+        <b>Destination:</b> bucket ${index}
+    `;
+
+    if (table[index].includes(key)) {
+
+        addStep(
+            `${key} already exists in bucket ${index}.`
+        );
+
+        render();
+
+        return;
+    }
+
+    if (table[index].length > 0) {
+
+        addStep(
+            `Collision! ${key} also maps to bucket ${index}.`
+        );
+
+    } else {
+
+        addStep(
+            `${key} goes directly into bucket ${index}.`
+        );
+
+    }
+
+    table[index].push(key);
+
+    render();
+
+}
+
+function search() {
+
+    const key = getKey();
+
+    if (key === null) {
+        return;
+    }
+
+    const index = hash(key);
+
+    const found =
+        table[index].includes(key);
+
+    if (found) {
+
+        statusElement.innerHTML = `
+            <b>Search:</b> ${key}<br>
+            ${key} % ${TABLE_SIZE} = ${index}<br>
+            Jump directly to bucket ${index}.<br>
+            <b>Result: FOUND</b>
+        `;
+
+        addStep(
+            `Found ${key} inside bucket ${index}.`
+        );
+
+        render(key);
+
+    } else {
+
+        statusElement.innerHTML = `
+            <b>Search:</b> ${key}<br>
+            ${key} % ${TABLE_SIZE} = ${index}<br>
+            Check bucket ${index}.<br>
+            <b>Result: NOT FOUND</b>
+        `;
+
+        addStep(
+            `${key} is not present in bucket ${index}.`
+        );
+
+        render();
+
+    }
+
+}
+
+function reset() {
+
+    table.forEach(
+        bucket => bucket.length = 0
+    );
+
+    statusElement.textContent =
+        "Table cleared. Enter a number and press Insert.";
+
+    stepsElement.innerHTML = `
+        <div class="step">
+            <b>1.</b> Take a key.
+        </div>
+
+        <div class="step">
+            <b>2.</b> Apply the hash function.
+        </div>
+
+        <div class="step">
+            <b>3.</b> Jump directly to that bucket.
+        </div>
+
+        <div class="step">
+            <b>4.</b> A second key at the same bucket creates a collision.
+        </div>
+    `;
+
+    render();
+
+}
+
+document
+    .getElementById("insertBtn")
+    .addEventListener("click", insert);
+
+document
+    .getElementById("searchBtn")
+    .addEventListener("click", search);
+
+document
+    .getElementById("resetBtn")
+    .addEventListener("click", reset);
+
+input.addEventListener("keydown", event => {
+
+    if (event.key === "Enter") {
+        insert();
+    }
+
+});
+
+render();
+
+</script>
+
+</body>
+</html>
