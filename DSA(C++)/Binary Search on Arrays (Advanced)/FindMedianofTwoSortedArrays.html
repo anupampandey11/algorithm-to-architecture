@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Unified Partition & Cross-Comparison Visualizer</title>
+    <!-- Three.js (3D Engine) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GSAP (3D Animations) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        :root {
+            /* Warm Eye-Comfort Palette */
+            --bg-comfort: #fcf9f2;
+            --panel-bg: rgba(255, 253, 247, 0.92);
+            --panel-border: #e6dfd3;
+            --text-dark: #2c251e;
+            --text-muted: #73675a;
+
+            --amber-warm: #d97706;
+            --amber-bg: #fef3c7;
+            --cyan-soft: #0284c7;
+            --emerald-soft: #059669;
+            --rose-soft: #e11d48;
+
+            --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --shadow-warm: 0 12px 32px rgba(100, 80, 50, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); }
+
+        body {
+            background-color: var(--bg-comfort);
+            color: var(--text-dark);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            grid-template-rows: auto 1fr auto;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .interactive { pointer-events: auto; }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            backdrop-filter: blur(12px);
+            border-radius: 18px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-warm);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--amber-warm);
+            letter-spacing: -0.5px;
+        }
+        header p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .input-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .input-group input {
+            background: #ffffff;
+            border: 1px solid var(--panel-border);
+            color: var(--text-dark);
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .slider-box {
+            background: #f5efe1;
+            border: 1px solid var(--panel-border);
+            padding: 0.9rem;
+            border-radius: 10px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--amber-warm);
+            cursor: pointer;
+        }
+
+        .action-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--amber-warm); color: white; }
+        .btn-primary:hover { background: #b45309; }
+        .btn-secondary { background: #e8e0d0; color: var(--text-dark); }
+        .btn-secondary:hover { background: #ded4c0; }
+
+        /* Explanation Card (Right Side) */
+        .explain-card {
+            grid-column: 2;
+            justify-self: end;
+            width: 420px;
+        }
+
+        .explain-card h3 {
+            font-size: 1rem;
+            color: var(--amber-warm);
+            margin-bottom: 0.5rem;
+        }
+
+        .explain-card p {
+            font-size: 0.88rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        /* Bottom Status HUD */
+        .hud-bar {
+            grid-column: 1 / -1;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-warm);
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .hud-stat .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+        .hud-stat .val { font-size: 1.1rem; font-weight: 800; font-family: var(--font-mono); }
+        .pass { color: var(--emerald-soft); }
+        .fail { color: var(--rose-soft); }
+    </style>
+</head>
+<body>
+
+    <canvas id="webgl-canvas"></canvas>
+
+    <div class="ui-overlay">
+        <!-- Sidebar Controls -->
+        <div class="glass-panel interactive">
+            <header>
+                <h1>Aligned Partition Visualizer</h1>
+                <p>Shift the unified line & observe cross-boundary checks</p>
+            </header>
+
+            <div class="input-group">
+                <label>Array 1 (Binary Search)</label>
+                <input type="text" id="arr1-input" value="1, 3, 4, 7, 10">
+            </div>
+            <div class="input-group">
+                <label>Array 2 (Derived Split)</label>
+                <input type="text" id="arr2-input" value="2, 5, 6, 8, 13, 15">
+            </div>
+
+            <div class="slider-box">
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:0.4rem;">
+                    <span>Cut Position (<code>mid1</code>): <b id="cut-val-display" style="color:var(--amber-warm);">1</b></span>
+                </div>
+                <input type="range" id="cut-slider" min="0" max="5" value="1">
+            </div>
+
+            <div class="action-btns">
+                <button class="btn btn-primary" id="btn-step">⚡ Auto Step</button>
+                <button class="btn btn-secondary" id="btn-reset">↺ Reset</button>
+            </div>
+        </div>
+
+        <!-- Explanation Card -->
+        <div class="glass-panel explain-card interactive">
+            <h3>Boundary Condition Explanation</h3>
+            <p id="explain-text">Adjust the slider to shift the line.</p>
+        </div>
+
+        <!-- Bottom HUD -->
+        <div class="hud-bar interactive">
+            <div class="hud-stat">
+                <span class="label">Check 1: L1 ≤ R2</span>
+                <span class="val" id="hud-chk1">-</span>
+            </div>
+            <div class="hud-stat">
+                <span class="label">Check 2: L2 ≤ R1</span>
+                <span class="val" id="hud-chk2">-</span>
+            </div>
+            <div class="hud-stat">
+                <span class="label">Partition Result</span>
+                <span class="val" id="hud-status">-</span>
+            </div>
+            <div class="hud-stat">
+                <span class="label">Calculated Median</span>
+                <span class="val" id="hud-median" style="color:var(--amber-warm); font-size:1.3rem;">N/A</span>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- THREE.JS SCENE SETUP ---
+    const canvas = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#fcf9f2');
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 18);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0xfff8eb, 0.9));
+    const dirLight = new THREE.DirectionalLight(0xd97706, 0.5);
+    dirLight.position.set(10, 15, 10);
+    scene.add(dirLight);
+
+    // Floor Grid
+    const grid = new THREE.GridHelper(30, 30, 0xe6dfd3, 0xf0e9dc);
+    grid.position.y = -2;
+    scene.add(grid);
+
+    // --- STATE & GEOMETRY STORES ---
+    let A = [1, 3, 4, 7, 10];
+    let B = [2, 5, 6, 8, 13, 15];
+    let low = 0, high = A.length;
+
+    let blocksA = [], blocksB = [];
+    const boxGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+
+    // Single Unified Partition Plane Mesh
+    const planeGeo = new THREE.PlaneGeometry(0.12, 6.0);
+    const planeMat = new THREE.MeshBasicMaterial({ color: 0xd97706, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+    const unifiedPartitionPlane = new THREE.Mesh(planeGeo, planeMat);
+    scene.add(unifiedPartitionPlane);
+
+    // 3D Cross-Comparison Arrows
+    let crossArrow1, crossArrow2;
+
+    function createBlockTexture(val) {
+        const c = document.createElement('canvas');
+        c.width = 128; c.height = 128;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 128, 128);
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(0, 0, 128, 128);
+        ctx.fillStyle = '#2c251e';
+        ctx.font = 'bold 52px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(val.toString(), 64, 64);
+        return new THREE.CanvasTexture(c);
+    }
+
+    function createArray3D(arr, yPos) {
+        const result = [];
+        arr.forEach((val, i) => {
+            const texture = createBlockTexture(val);
+            const mat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.2 });
+            const mesh = new THREE.Mesh(boxGeo, mat);
+            mesh.position.set(0, yPos, 0); // Position set dynamically in update
+            scene.add(mesh);
+            result.push({ mesh, val, idx: i });
+        });
+        return result;
+    }
+
+    function clearScene3D() {
+        blocksA.forEach(b => scene.remove(b.mesh));
+        blocksB.forEach(b => scene.remove(b.mesh));
+        if (crossArrow1) scene.remove(crossArrow1);
+        if (crossArrow2) scene.remove(crossArrow2);
+        blocksA = []; blocksB = [];
+    }
+
+    function init3DWorld() {
+        clearScene3D();
+        blocksA = createArray3D(A, 1.5);
+        blocksB = createArray3D(B, -1.0);
+        updateVisuals();
+    }
+
+    // --- ALIGNMENT & SHIFT ANIMATION ---
+    function updateVisuals() {
+        const cut1 = parseInt(document.getElementById('cut-slider').value);
+        const N1 = A.length, N2 = B.length;
+        const targetLeft = Math.floor((N1 + N2 + 1) / 2);
+        const cut2 = targetLeft - cut1;
+
+        document.getElementById('cut-val-display').innerText = cut1;
+
+        // FIXED PLANE POSITION AT WORLD X = 0
+        const PLANE_X = 0;
+        unifiedPartitionPlane.position.set(PLANE_X, 0.25, 0);
+
+        // ALIGN ARRAY 1 SO THAT THE LINE CUTS EXACTLY AFTER `cut1` ELEMENTS
+        // Element index `cut1 - 1` sits left of PLANE_X; element index `cut1` sits right of PLANE_X.
+        const BLOCK_SPACING = 1.5;
+        blocksA.forEach((b, i) => {
+            const targetX = PLANE_X + (i - cut1 + 0.5) * BLOCK_SPACING;
+            gsap.to(b.mesh.position, { x: targetX, duration: 0.5, ease: 'power2.out' });
+        });
+
+        // ALIGN ARRAY 2 SO THAT THE SAME LINE CUTS EXACTLY AFTER `cut2` ELEMENTS
+        blocksB.forEach((b, i) => {
+            const targetX = PLANE_X + (i - cut2 + 0.5) * BLOCK_SPACING;
+            gsap.to(b.mesh.position, { x: targetX, duration: 0.5, ease: 'power2.out' });
+        });
+
+        // BOUNDARY VALUES
+        const L1 = cut1 === 0 ? -Infinity : A[cut1 - 1];
+        const R1 = cut1 === N1 ? Infinity : A[cut1];
+        const L2 = cut2 === 0 ? -Infinity : B[cut2 - 1];
+        const R2 = cut2 === N2 ? Infinity : B[cut2];
+
+        const chk1 = L1 <= R2;
+        const chk2 = L2 <= R1;
+
+        // UPDATE HUD
+        const hChk1 = document.getElementById('hud-chk1');
+        hChk1.innerText = `${L1 === -Infinity ? '-∞' : L1} ≤ ${R2 === Infinity ? '+∞' : R2}`;
+        hChk1.className = `val ${chk1 ? 'pass' : 'fail'}`;
+
+        const hChk2 = document.getElementById('hud-chk2');
+        hChk2.innerText = `${L2 === -Infinity ? '-∞' : L2} ≤ ${R1 === Infinity ? '+∞' : R1}`;
+        hChk2.className = `val ${chk2 ? 'pass' : 'fail'}`;
+
+        const hStatus = document.getElementById('hud-status');
+        const hMedian = document.getElementById('hud-median');
+        const expText = document.getElementById('explain-text');
+
+        if (chk1 && chk2) {
+            hStatus.innerText = "VALID PARTITION";
+            hStatus.className = "val pass";
+
+            let med = 0;
+            const maxL = Math.max(L1, L2);
+            if ((N1 + N2) % 2 !== 0) {
+                med = maxL;
+            } else {
+                const minR = Math.min(R1, R2);
+                med = ((maxL + minR) / 2).toFixed(1);
+            }
+            hMedian.innerText = med;
+
+            expText.innerHTML = `<b>SUCCESS! Valid Symmetry Achieved.</b><br><br>` +
+                                `Every element on the left side of the vertical line is $\\le$ every element on the right.<br>` +
+                                `<b>L1 (${L1}) ≤ R2 (${R2})</b> and <b>L2 (${L2}) ≤ R1 (${R1})</b> both hold TRUE.<br>` +
+                                `Calculated Median = <b>${med}</b>.`;
+        } else {
+            hStatus.innerText = "INVALID PARTITION";
+            hStatus.className = "val fail";
+            hMedian.innerText = "N/A";
+
+            if (!chk1) {
+                expText.innerHTML = `<b>INVALID: L1 > R2 (${L1} > ${R2})</b><br><br>` +
+                                    `<b>What this means:</b> The element on the left of Array 1 (L1 = ${L1}) is larger than the element on the right of Array 2 (R2 = ${R2}).<br>` +
+                                    `<b>Why it fails:</b> Sorted order is broken across the line.<br>` +
+                                    `👉 <b>Action:</b> Shift the partition line <b>LEFT</b> (decrease <code>mid1</code>).`;
+            } else if (!chk2) {
+                expText.innerHTML = `<b>INVALID: L2 > R1 (${L2} > ${R1})</b><br><br>` +
+                                    `<b>What this means:</b> The element on the left of Array 2 (L2 = ${L2}) is larger than the element on the right of Array 1 (R1 = ${R1}).<br>` +
+                                    `<b>Why it fails:</b> Array 1 contributed too few elements to the left half.<br>` +
+                                    `👉 <b>Action:</b> Shift the partition line <b>RIGHT</b> (increase <code>mid1</code>).`;
+            }
+        }
+    }
+
+    // --- INPUT & CONTROLS ---
+    function parseInputs() {
+        let rawA = document.getElementById('arr1-input').value.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x)).sort((a,b) => a - b);
+        let rawB = document.getElementById('arr2-input').value.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x)).sort((a,b) => a - b);
+
+        if (rawA.length === 0) rawA = [1];
+        if (rawB.length === 0) rawB = [2];
+
+        if (rawA.length > rawB.length) {
+            A = rawB; B = rawA;
+            document.getElementById('arr1-input').value = A.join(', ');
+            document.getElementById('arr2-input').value = B.join(', ');
+        } else {
+            A = rawA; B = rawB;
+        }
+
+        low = 0; high = A.length;
+        const slider = document.getElementById('cut-slider');
+        slider.max = A.length;
+        slider.value = 1; // Default matching user sketch
+
+        init3DWorld();
+    }
+
+    function stepBinarySearch() {
+        const cut1 = parseInt(document.getElementById('cut-slider').value);
+        const N1 = A.length, N2 = B.length;
+        const targetLeft = Math.floor((N1 + N2 + 1) / 2);
+        const cut2 = targetLeft - cut1;
+
+        const L1 = cut1 === 0 ? -Infinity : A[cut1 - 1];
+        const R1 = cut1 === N1 ? Infinity : A[cut1];
+        const L2 = cut2 === 0 ? -Infinity : B[cut2 - 1];
+        const R2 = cut2 === N2 ? Infinity : B[cut2];
+
+        if (L1 <= R2 && L2 <= R1) {
+            alert("Valid partition already found!");
+            return;
+        }
+
+        if (L1 > R2) {
+            high = cut1 - 1;
+        } else if (L2 > R1) {
+            low = cut1 + 1;
+        }
+
+        if (low <= high) {
+            document.getElementById('cut-slider').value = Math.floor((low + high) / 2);
+            updateVisuals();
+        }
+    }
+
+    document.getElementById('cut-slider').addEventListener('input', updateVisuals);
+    document.getElementById('arr1-input').addEventListener('change', parseInputs);
+    document.getElementById('arr2-input').addEventListener('change', parseInputs);
+    document.getElementById('btn-step').addEventListener('click', stepBinarySearch);
+    document.getElementById('btn-reset').addEventListener('click', parseInputs);
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+
+    parseInputs();
+    animate();
+</script>
+
+</body>
+</html>
