@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Binary Search Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-red: #f87171;
+            --accent-purple: #c084fc;
+        }
+
+        body {
+            margin: 0;
+            padding: 2rem;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { margin-bottom: 0.5rem; color: var(--accent-blue); text-align: center; }
+        .desc { color: var(--text-muted); margin-bottom: 2rem; text-align: center; max-width: 650px; }
+
+        /* --- Controls --- */
+        .controls-panel {
+            background-color: var(--card-bg);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        label { font-weight: bold; color: var(--text-main); }
+        select {
+            background: #0f172a;
+            color: white;
+            border: 1px solid #475569;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-group { display: flex; gap: 0.75rem; }
+        button {
+            background-color: var(--accent-blue);
+            color: #0f172a;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:disabled { background-color: #475569; color: var(--text-muted); cursor: not-allowed; transform: none; }
+
+        /* --- Array Visualizer --- */
+        .array-container {
+            display: flex;
+            gap: 12px;
+            position: relative;
+            padding-bottom: 75px;
+            margin-bottom: 1.5rem;
+            min-height: 140px;
+        }
+
+        .element {
+            width: 65px;
+            height: 65px;
+            background-color: var(--card-bg);
+            border: 2px solid #334155;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .element.active-range { border-color: #64748b; background-color: #1e293b; }
+        .element.ignored { opacity: 0.25; border-color: #1e293b; }
+        .element.found { border-color: var(--accent-green); background-color: #064e3b; }
+
+        .index { font-size: 0.75rem; color: var(--text-muted); position: absolute; top: 4px; }
+        .val { margin-top: 10px; }
+
+        /* --- Pointers --- */
+        .pointer {
+            position: absolute;
+            bottom: 5px;
+            width: 65px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none;
+        }
+
+        /* --- Narrative Subtitles --- */
+        .subtitle-box {
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            padding: 1.25rem;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            font-size: 1.1rem;
+            border-left: 5px solid var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Rotated Array Visualizer</h1>
+    <p class="desc">Switch between different structural test cases and click "Next Step" to watch the binary search logic adapt frames interactively.</p>
+
+    <div class="controls-panel">
+        <div>
+            <label for="caseSelect">Choose Case: </label>
+            <select id="caseSelect">
+                <option value="case1">Case 1: Standard Pivot in Middle [4, 5, 6, 7, 0, 1, 2]</option>
+                <option value="case2">Case 2: Minimum at Index 0 (Not Rotated) [1, 2, 3, 4, 5, 6, 7]</option>
+                <option value="case3">Case 3: Heavily Rotated / Pivot at End [2, 3, 4, 5, 6, 7, 1]</option>
+            </select>
+        </div>
+
+        <div class="btn-group">
+            <button id="prevBtn" disabled>⏮ Prev Step</button>
+            <button id="nextBtn">Next Step ⏭</button>
+        </div>
+    </div>
+
+    <div class="array-container" id="arrayContainer"></div>
+
+    <div class="subtitle-box">
+        <div id="narrative">Loading case details...</div>
+    </div>
+
+    <script>
+        // Data blueprints for all three crucial test variations
+        const datasets = {
+            case1: {
+                array: [4, 5, 6, 7, 0, 1, 2],
+                steps: [
+                    { left: 0, right: 6, mid: 3, text: "Frame 1: Initial state. Mid value (7) > Right value (2). This tells us the inflection fracture lies strictly to the right. Move Left = mid + 1." },
+                    { left: 4, right: 6, mid: 5, text: "Frame 2: Right side [0, 1, 2] is completely ordered normally because Mid (1) < Right (2). The true minimum must be at or left of mid. Shift Right = mid." },
+                    { left: 4, right: 5, mid: 4, text: "Frame 3: Mid value (0) < Right value (1). Again, right side is orderly. Shift Right = mid." },
+                    { left: 4, right: 4, mid: 4, text: "Frame 4: Left matches Right at Index 4! The process ends. Lowest target found: 0." }
+                ]
+            },
+            case2: {
+                array: [1, 2, 3, 4, 5, 6, 7],
+                steps: [
+                    { left: 0, right: 6, mid: 3, text: "Frame 1: Array is already sorted! Mid (4) < Right (7). The right slice is fine, so the minimum is safely leftward. Shift Right = mid." },
+                    { left: 0, right: 3, mid: 1, text: "Frame 2: Mid (2) < Right (4). The right slice stays structured. Shift Right = mid." },
+                    { left: 0, right: 1, mid: 0, text: "Frame 3: Mid (1) < Right (2). Bring Right inward again. Shift Right = mid." },
+                    { left: 0, right: 0, mid: 0, text: "Frame 4: Pointers converge perfectly at Index 0. Minimum target extracted: 1." }
+                ]
+            },
+            case3: {
+                array: [2, 3, 4, 5, 6, 7, 1],
+                steps: [
+                    { left: 0, right: 6, mid: 3, text: "Frame 1: Mid (5) > Right (1). The values drop drastically somewhere to the right. Move Left = mid + 1." },
+                    { left: 4, right: 6, mid: 5, text: "Frame 2: Mid (7) > Right (1). The sequence breaks further right still. Move Left = mid + 1." },
+                    { left: 6, right: 6, mid: 6, text: "Frame 3: Left meets Right instantly at Index 6! Loop closes. Minimum value located: 1." }
+                ]
+            }
+        };
+
+        let currentCase = 'case1';
+        let currentStepIndex = 0;
+
+        const container = document.getElementById('arrayContainer');
+        const narrative = document.getElementById('narrative');
+        const caseSelect = document.getElementById('caseSelect');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function renderTemplate() {
+            const data = datasets[currentCase];
+            container.innerHTML = '';
+
+            // Generate structural array block cells
+            data.array.forEach((val, idx) => {
+                const node = document.createElement('div');
+                node.className = 'element';
+                node.id = `cell-${idx}`;
+                node.innerHTML = `<span class="index">${idx}</span><span class="val">${val}</span>`;
+                container.appendChild(node);
+            });
+
+            // Append floating pointer markup
+            container.insertAdjacentHTML('beforeend', `
+                <div id="ptr-L" class="pointer" style="color: var(--accent-green)">▲<br>Left</div>
+                <div id="ptr-M" class="pointer" style="color: var(--accent-blue)">▲<br>Mid</div>
+                <div id="ptr-R" class="pointer" style="color: var(--accent-red)">▲<br>Right</div>
+            `);
+
+            updateStep();
+        }
+
+        function updateStep() {
+            const data = datasets[currentCase];
+            const step = data.steps[currentStepIndex];
+            const totalSteps = data.steps.length;
+
+            // Update Text Explanation Panel
+            narrative.textContent = step.text;
+
+            // Highlight active search spaces vs ignored elements
+            data.array.forEach((_, idx) => {
+                const cell = document.getElementById(`cell-${idx}`);
+                cell.className = 'element'; // Reset configuration
+
+                if (currentStepIndex === totalSteps - 1 && idx === step.left) {
+                    cell.classList.add('found');
+                } else if (idx >= step.left && idx <= step.right) {
+                    cell.classList.add('active-range');
+                } else {
+                    cell.classList.add('ignored');
+                }
+            });
+
+            // Position calculation pointers dynamically (65px element + 12px gap = 77px step size)
+            const stepWidth = 77;
+            const pL = document.getElementById('ptr-L');
+            const pM = document.getElementById('ptr-M');
+            const pR = document.getElementById('ptr-R');
+
+            pL.style.display = 'block'; pL.style.left = `${step.left * stepWidth}px`;
+            pR.style.display = 'block'; pR.style.left = `${step.right * stepWidth}px`;
+
+            if (currentStepIndex === totalSteps - 1) {
+                pM.style.display = 'none'; // Clear out the middle tracking pointer when match completes
+            } else {
+                pM.style.display = 'block'; pM.style.left = `${step.mid * stepWidth}px`;
+            }
+
+            // Manage status thresholds on navigation control inputs
+            prevBtn.disabled = currentStepIndex === 0;
+            nextBtn.disabled = currentStepIndex === totalSteps - 1;
+        }
+
+        // Event hooks
+        caseSelect.addEventListener('change', (e) => { currentCase = e.target.value; currentStepIndex = 0; renderTemplate(); });
+        prevBtn.addEventListener('click', () => { if (currentStepIndex > 0) { currentStepIndex--; updateStep(); } });
+        nextBtn.addEventListener('click', () => { if (currentStepIndex < datasets[currentCase].steps.length - 1) { currentStepIndex++; updateStep(); } });
+
+        // Initialize Simulator Default state
+        renderTemplate();
+    </script>
+</body>
+</html>
