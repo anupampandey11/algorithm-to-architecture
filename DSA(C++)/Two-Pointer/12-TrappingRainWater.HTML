@@ -1,0 +1,2343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trapping Rain Water — Ultra 3D Interactive Visualizer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js (r128), OrbitControls, GSAP, Canvas Confetti -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #070b14;
+            --bg-surface: rgba(13, 22, 38, 0.85);
+            --bg-card: rgba(18, 30, 52, 0.75);
+            --bg-input: #0a1322;
+            --border-subtle: rgba(56, 189, 248, 0.15);
+            --border-active: rgba(56, 189, 248, 0.5);
+            
+            --text-main: #f0f6fc;
+            --text-muted: #8b9eb7;
+            --text-dim: #50657f;
+            
+            --cyan: #38bdf8;
+            --cyan-glow: rgba(56, 189, 248, 0.35);
+            --emerald: #10b981;
+            --emerald-glow: rgba(16, 185, 129, 0.35);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245, 158, 11, 0.35);
+            --blue-water: #0ea5e9;
+            --purple: #a855f7;
+            --rose: #f43f5e;
+            
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --glass-blur: blur(14px);
+            --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 24px rgba(56, 189, 248, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-base);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 10% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(245, 158, 11, 0.08) 0%, transparent 40%);
+        }
+
+        /* Top Header */
+        header {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(7, 11, 20, 0.85);
+            backdrop-filter: var(--glass-blur);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .header-badges {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            font-size: 0.72rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid transparent;
+        }
+
+        .badge-hard {
+            background: rgba(244, 63, 94, 0.15);
+            color: #fb7185;
+            border-color: rgba(244, 63, 94, 0.3);
+        }
+
+        .badge-algo {
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--cyan);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .badge-complexity {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--emerald);
+            border-color: rgba(16, 185, 129, 0.3);
+            font-family: var(--font-mono);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+        }
+
+        .icon-btn:hover {
+            color: var(--text-main);
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.15);
+        }
+
+        .icon-btn.active {
+            color: var(--cyan);
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        /* Main Container Grid */
+        .container {
+            max-width: 1720px;
+            margin: 0 auto;
+            padding: 16px 20px 40px;
+            display: grid;
+            grid-template-columns: 1fr 480px;
+            gap: 18px;
+        }
+
+        @media (max-width: 1280px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Column: 3D Stage + Stats + Controls */
+        .stage-column {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Stats HUD Bar */
+        .stats-hud {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+
+        @media (max-width: 800px) {
+            .stats-hud {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            transition: background 0.3s ease;
+        }
+
+        .stat-card.left-active::after { background: var(--emerald); }
+        .stat-card.right-active::after { background: var(--amber); }
+        .stat-card.water-active::after { background: var(--blue-water); }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-badge {
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-weight: 800;
+        }
+
+        .stat-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--text-main);
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .stat-val small {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .stat-val.c-emerald { color: #34d399; }
+        .stat-val.c-amber { color: #fbbf24; }
+        .stat-val.c-cyan { color: #38bdf8; }
+        .stat-val.c-water { color: #60a5fa; text-shadow: 0 0 12px rgba(96, 165, 250, 0.5); }
+
+        /* 3D Visualizer Canvas Box */
+        .visualizer-card {
+            background: radial-gradient(circle at 50% 30%, #0c182b 0%, #050b14 100%);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            height: 560px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            outline: none;
+            cursor: grab;
+        }
+
+        #three-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* 3D Viewport Overlays */
+        .canvas-overlay-top {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .camera-presets {
+            display: flex;
+            background: rgba(7, 13, 24, 0.85);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+            pointer-events: auto;
+        }
+
+        .cam-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .cam-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .cam-btn.active {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--cyan);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+
+        .canvas-hint {
+            background: rgba(7, 13, 24, 0.85);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: auto;
+        }
+
+        .canvas-overlay-bottom {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .legend-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: rgba(7, 13, 24, 0.85);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 8px 14px;
+            pointer-events: auto;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .dot-emerald { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
+        .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+        .dot-water { background: var(--blue-water); box-shadow: 0 0 6px var(--blue-water); }
+        .dot-active { background: #facc15; box-shadow: 0 0 6px #facc15; }
+        .dot-laser-left { background: #34d399; height: 3px; border-radius: 1px; width: 14px; }
+        .dot-laser-right { background: #fbbf24; height: 3px; border-radius: 1px; width: 14px; }
+
+        /* Floating 3D Action Banner in Canvas */
+        .step-action-toast {
+            background: rgba(10, 20, 36, 0.92);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-active);
+            border-radius: 12px;
+            padding: 10px 16px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            pointer-events: auto;
+            max-width: 440px;
+        }
+
+        .step-action-toast .action-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Controls Card */
+        .controls-card {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .timeline-slider-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .timeline-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #111d30;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--cyan-glow);
+            border: 2px solid #ffffff;
+            transition: transform 0.15s ease;
+        }
+
+        .timeline-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        .playback-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .btn:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--cyan);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+            color: white;
+            border-color: #38bdf8;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0369a1, #0284c7);
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.6);
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            border-radius: 8px;
+        }
+
+        .speed-selector {
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .speed-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .speed-btn.active {
+            background: rgba(56, 189, 248, 0.25);
+            color: var(--cyan);
+        }
+
+        /* Array Configuration & Presets */
+        .preset-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .preset-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .preset-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-pill:hover {
+            color: var(--text-main);
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .preset-pill.active {
+            color: var(--cyan);
+            border-color: var(--cyan);
+            background: rgba(56, 189, 248, 0.2);
+            font-weight: 700;
+        }
+
+        .custom-input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .custom-input-row input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 8px 12px;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .custom-input-row input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan-glow);
+        }
+
+        /* Right Column: Explanations + C++ Synced Code */
+        .info-column {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* 5-Question Breakdown Card */
+        .explanation-card {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+        }
+
+        .step-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .step-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .decision-comparison-box {
+            background: linear-gradient(135deg, rgba(16, 28, 48, 0.9), rgba(9, 17, 30, 0.9));
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+
+        .comp-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .comp-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+        }
+
+        .comp-val {
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .comp-operator {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--cyan);
+            padding: 0 8px;
+        }
+
+        .qa-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .qa-item {
+            background: rgba(10, 18, 32, 0.6);
+            border-left: 3px solid var(--cyan);
+            border-radius: 0 10px 10px 0;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .qa-item.qa-what { border-left-color: #38bdf8; }
+        .qa-item.qa-why { border-left-color: #a855f7; }
+        .qa-item.qa-where { border-left-color: #10b981; }
+        .qa-item.qa-when { border-left-color: #f59e0b; }
+
+        .qa-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .qa-desc {
+            font-size: 0.85rem;
+            color: #d1dce8;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .formula-box {
+            background: #060d17;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #7dd3fc;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .formula-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-family: var(--font-sans);
+            font-weight: 700;
+        }
+
+        /* Synced C++ Code Card */
+        .code-card {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-header {
+            padding: 10px 16px;
+            background: rgba(10, 18, 32, 0.9);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .code-lang {
+            color: var(--cyan);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .code-container {
+            padding: 12px 0;
+            background: #050a12;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            max-height: 290px;
+        }
+
+        .code-line {
+            padding: 2px 16px;
+            display: flex;
+            gap: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .code-line:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .code-line.active-line {
+            background: rgba(56, 189, 248, 0.2);
+            border-left: 3px solid var(--cyan);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .line-num {
+            color: var(--text-dim);
+            width: 24px;
+            text-align: right;
+            user-select: none;
+        }
+
+        .line-code {
+            color: #94a3b8;
+            white-space: pre;
+        }
+
+        .active-line .line-code {
+            color: #e2e8f0;
+        }
+
+        .syn-keyword { color: #f472b6; }
+        .syn-var { color: #38bdf8; }
+        .syn-num { color: #fbbf24; }
+        .syn-func { color: #a78bfa; }
+        .syn-comment { color: #64748b; font-style: italic; }
+
+        /* Modal Overlay for Theory & Help */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: #0d1726;
+            border: 1px solid var(--border-active);
+            border-radius: 20px;
+            max-width: 680px;
+            width: 100%;
+            padding: 24px 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .modal-close:hover { color: white; }
+
+        .modal-body {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.65;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-highlight {
+            background: rgba(56, 189, 248, 0.1);
+            border-left: 3px solid var(--cyan);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Toast Notifications */
+        #celebration-banner {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-30px);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
+            border: 1px solid #34d399;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 1rem;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #celebration-banner.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🌧️</div>
+            <div class="brand-text">
+                <h1>Trapping Rain Water</h1>
+                <p>Interactive 3D Two-Pointer Spatial Architecture & Algorithm Engine</p>
+            </div>
+        </div>
+
+        <div class="header-badges">
+            <span class="badge badge-hard">LeetCode #42</span>
+            <span class="badge badge-algo">Two Pointers</span>
+            <span class="badge badge-complexity">Time O(N) • Space O(1)</span>
+        </div>
+
+        <div class="header-actions">
+            <button class="icon-btn" id="rain-toggle" title="Toggle 3D Atmospheric Rain">🌧️</button>
+            <button class="icon-btn" id="audio-toggle" title="Toggle Synthesized Water SFX">🔊</button>
+            <button class="icon-btn" id="help-btn" title="Theoretical Deep-Dive & Invariant Proof">❓</button>
+        </div>
+    </header>
+
+    <!-- Celebration Banner -->
+    <div id="celebration-banner">
+        🎉 Simulation Complete! Total Trapped Water: <span id="banner-total">0</span> Units
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+
+        <!-- Left Stage Column -->
+        <div class="stage-column">
+
+            <!-- Stats HUD Bar -->
+            <div class="stats-hud">
+                <div class="stat-card" id="hud-left">
+                    <div class="stat-label">
+                        <span>Left Pointer</span>
+                        <span class="stat-badge" style="background:rgba(16,185,129,0.2); color:#34d399;">L</span>
+                    </div>
+                    <div class="stat-val c-emerald">
+                        <span id="stat-l-idx">0</span>
+                        <small>(h: <b id="stat-l-h">0</b>)</small>
+                    </div>
+                </div>
+
+                <div class="stat-card" id="hud-lmax">
+                    <div class="stat-label">
+                        <span>Left Max</span>
+                        <span class="stat-badge" style="background:rgba(52,211,153,0.15); color:#6ee7b7;">BARRIER</span>
+                    </div>
+                    <div class="stat-val c-emerald" id="stat-l-max">0</div>
+                </div>
+
+                <div class="stat-card" id="hud-bottleneck">
+                    <div class="stat-label">
+                        <span>Bottleneck</span>
+                        <span class="stat-badge" style="background:rgba(56,189,248,0.2); color:#38bdf8;">ACTIVE</span>
+                    </div>
+                    <div class="stat-val c-cyan" id="stat-active-side">READY</div>
+                </div>
+
+                <div class="stat-card" id="hud-rmax">
+                    <div class="stat-label">
+                        <span>Right Max</span>
+                        <span class="stat-badge" style="background:rgba(251,191,36,0.15); color:#fde68a;">BARRIER</span>
+                    </div>
+                    <div class="stat-val c-amber" id="stat-r-max">0</div>
+                </div>
+
+                <div class="stat-card" id="hud-right">
+                    <div class="stat-label">
+                        <span>Right Pointer</span>
+                        <span class="stat-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">R</span>
+                    </div>
+                    <div class="stat-val c-amber">
+                        <span id="stat-r-idx">0</span>
+                        <small>(h: <b id="stat-r-h">0</b>)</small>
+                    </div>
+                </div>
+
+                <div class="stat-card water-active" id="hud-total">
+                    <div class="stat-label">
+                        <span>Total Water</span>
+                        <span class="stat-badge" style="background:rgba(14,165,233,0.25); color:#7dd3fc;">VOLUME</span>
+                    </div>
+                    <div class="stat-val c-water">
+                        <span id="stat-total-water">0</span>
+                        <small>units</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Visualizer Canvas Box -->
+            <div class="visualizer-card">
+                <canvas id="three-canvas"></canvas>
+
+                <!-- Top Overlay: Camera Presets -->
+                <div class="canvas-overlay-top">
+                    <div class="camera-presets">
+                        <button class="cam-btn active" id="cam-3d">🎥 3D Angled</button>
+                        <button class="cam-btn" id="cam-front">📐 Front 2D</button>
+                        <button class="cam-btn" id="cam-top">🔝 Top-Down</button>
+                        <button class="cam-btn" id="cam-focus">🔍 Focus Active</button>
+                    </div>
+
+                    <div class="canvas-hint">
+                        <span>🖱️ Left-Click: Orbit | Right-Click: Pan | Scroll: Zoom</span>
+                    </div>
+                </div>
+
+                <!-- Bottom Overlay: Legend -->
+                <div class="canvas-overlay-bottom">
+                    <div class="legend-box">
+                        <div class="legend-item"><span class="legend-dot dot-emerald"></span> Left (L)</div>
+                        <div class="legend-item"><span class="legend-dot dot-amber"></span> Right (R)</div>
+                        <div class="legend-item"><span class="legend-dot dot-active"></span> Evaluating</div>
+                        <div class="legend-item"><span class="legend-dot dot-water"></span> Trapped Water</div>
+                        <div class="legend-item"><span class="legend-dot dot-laser-left"></span> LeftMax Plane</div>
+                        <div class="legend-item"><span class="legend-dot dot-laser-right"></span> RightMax Plane</div>
+                    </div>
+
+                    <div class="step-action-toast" id="action-toast">
+                        <span class="action-icon">💡</span>
+                        <span id="toast-text">Press Next Step or Play to begin two-pointer traversal.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls & Timeline Card -->
+            <div class="controls-card">
+                <!-- Timeline Scrubber -->
+                <div class="timeline-section">
+                    <div class="timeline-header">
+                        <span>Simulation Progress</span>
+                        <span>Step <b id="lbl-step">0</b> of <b id="lbl-total-steps">0</b> (<span id="lbl-progress-pct">0%</span>)</span>
+                    </div>
+                    <div class="timeline-slider-wrap">
+                        <input type="range" min="0" max="0" value="0" class="timeline-slider" id="timeline-slider">
+                    </div>
+                </div>
+
+                <!-- Playback Buttons & Speed -->
+                <div class="playback-controls">
+                    <div class="btn-group">
+                        <button class="btn btn-sm" id="btn-first" title="First Step">⏮ First</button>
+                        <button class="btn btn-sm" id="btn-prev" title="Previous Step">◀ Prev</button>
+                        <button class="btn btn-primary" id="btn-play">▶ Play</button>
+                        <button class="btn btn-sm btn-primary" id="btn-next">Next ▶</button>
+                        <button class="btn btn-sm" id="btn-last" title="Last Step">⏭ Last</button>
+                        <button class="btn btn-sm" id="btn-reset" title="Reset">🔄 Reset</button>
+                    </div>
+
+                    <div class="speed-selector">
+                        <span style="font-size:0.7rem; color:var(--text-muted); padding:0 6px;">SPEED:</span>
+                        <button class="speed-btn" data-speed="2000">0.5x</button>
+                        <button class="speed-btn active" data-speed="1000">1x</button>
+                        <button class="speed-btn" data-speed="500">2x</button>
+                        <button class="speed-btn" data-speed="250">4x</button>
+                    </div>
+                </div>
+
+                <!-- Preset Scenarios & Custom Array -->
+                <div class="preset-section">
+                    <div class="preset-pills">
+                        <span style="font-size:0.7rem; color:var(--text-muted); align-self:center; font-weight:700;">PRESETS:</span>
+                        <button class="preset-pill active" data-array="0,1,0,2,1,0,1,3,2,1,2,1">🌟 LeetCode #42</button>
+                        <button class="preset-pill" data-array="4,2,0,3,2,5">⛰️ Big Valley</button>
+                        <button class="preset-pill" data-array="3,0,0,2,0,4">🏺 Deep Basin</button>
+                        <button class="preset-pill" data-array="3,1,2,4,0,1,3,2">🏔️ Multi-Peak</button>
+                        <button class="preset-pill" data-array="5,4,3,2,1,0">📉 Staircase (0 Water)</button>
+                        <button class="preset-pill" id="btn-random">🎲 Random</button>
+                    </div>
+
+                    <div class="custom-input-row">
+                        <input type="text" id="custom-array-input" value="0,1,0,2,1,0,1,3,2,1,2,1" placeholder="Enter comma-separated heights (e.g. 4,2,0,3,2,5)">
+                        <button class="btn btn-primary" id="btn-apply-array">Apply Heights</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Info & Code Column -->
+        <div class="info-column">
+
+            <!-- 5-Question Breakdown Card -->
+            <div class="explanation-card">
+                <div class="step-header">
+                    <div>
+                        <div class="step-title" id="exp-step-title">Step 0: Initializing</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);" id="exp-step-sub">Pointers initialized at boundaries</div>
+                    </div>
+                    <span class="step-badge" id="exp-badge" style="background:rgba(56,189,248,0.2); color:#38bdf8;">READY</span>
+                </div>
+
+                <!-- Comparison HUD -->
+                <div class="decision-comparison-box">
+                    <div class="comp-item">
+                        <span class="comp-label">height[L]</span>
+                        <span class="comp-val c-emerald" id="comp-l-val">height[0] = 0</span>
+                    </div>
+                    <div class="comp-operator" id="comp-op">vs</div>
+                    <div class="comp-item">
+                        <span class="comp-label">height[R]</span>
+                        <span class="comp-val c-amber" id="comp-r-val">height[11] = 1</span>
+                    </div>
+                </div>
+
+                <!-- 5-Questions List -->
+                <div class="qa-list">
+                    <div class="qa-item qa-what">
+                        <div class="qa-title" style="color:#38bdf8;">
+                            <span>❓ WHAT is happening?</span>
+                        </div>
+                        <div class="qa-desc" id="qa-what-text">
+                            We compare the boundary bars at Left and Right pointers. The shorter bar establishes the active bottleneck.
+                        </div>
+                    </div>
+
+                    <div class="qa-item qa-why">
+                        <div class="qa-title" style="color:#c084fc;">
+                            <span>🧠 WHY this decision? (The Two-Pointer Invariant)</span>
+                        </div>
+                        <div class="qa-desc" id="qa-why-text">
+                            Water level at any position is bounded by <code>min(maxLeft, maxRight)</code>. Because <code>height[left] &lt;= height[right]</code>, we know with 100% mathematical certainty that the right side has a wall of at least <code>height[right] &gt;= leftMax</code>. Thus, <code>leftMax</code> is the sole limiting factor!
+                        </div>
+                    </div>
+
+                    <div class="qa-item qa-where">
+                        <div class="qa-title" style="color:#34d399;">
+                            <span>📍 WHERE is water trapped?</span>
+                        </div>
+                        <div class="qa-desc" id="qa-where-text">
+                            Evaluating current pointer position. If pillar height is less than the boundary maximum, water fills the gap.
+                        </div>
+                    </div>
+
+                    <div class="qa-item qa-when">
+                        <div class="qa-title" style="color:#fbbf24;">
+                            <span>⏱️ WHEN do we advance pointers?</span>
+                        </div>
+                        <div class="qa-desc" id="qa-when-text">
+                            Advance the pointer on the shorter side inward (<code>left++</code> or <code>right--</code>) because its trapped water is now fully computed and cannot be affected by any unseen inner pillars.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formula Evaluation Box -->
+                <div class="formula-box">
+                    <div class="formula-label">📐 Mathematical Computation:</div>
+                    <div id="formula-text">Trapped Water = max(0, min(leftMax, rightMax) - height[i])</div>
+                </div>
+            </div>
+
+            <!-- Synchronized C++ Code Box -->
+            <div class="code-card">
+                <div class="code-header">
+                    <div class="code-lang">
+                        <span>⚡</span> C++ Two-Pointer Algorithm
+                    </div>
+                    <span style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);">O(N) Time • O(1) Space</span>
+                </div>
+                <div class="code-container" id="code-box">
+                    <div class="code-line" id="line-1"><span class="line-num">1</span><span class="line-code"><span class="syn-keyword">int</span> <span class="syn-func">trap</span>(<span class="syn-keyword">const</span> vector&lt;<span class="syn-keyword">int</span>&gt;&amp; height) {</span></div>
+                    <div class="code-line" id="line-2"><span class="line-num">2</span><span class="line-code">    <span class="syn-keyword">int</span> n = height.size();</span></div>
+                    <div class="code-line" id="line-3"><span class="line-num">3</span><span class="line-code">    <span class="syn-keyword">int</span> left = <span class="syn-num">0</span>, right = n - <span class="syn-num">1</span>;</span></div>
+                    <div class="code-line" id="line-4"><span class="line-num">4</span><span class="line-code">    <span class="syn-keyword">int</span> leftMax = <span class="syn-num">0</span>, rightMax = <span class="syn-num">0</span>, total = <span class="syn-num">0</span>;</span></div>
+                    <div class="code-line" id="line-5"><span class="line-num">5</span><span class="line-code">    <span class="syn-keyword">while</span> (left &lt;= right) {</span></div>
+                    <div class="code-line" id="line-6"><span class="line-num">6</span><span class="line-code">        <span class="syn-keyword">if</span> (height[left] &lt;= height[right]) {</span></div>
+                    <div class="code-line" id="line-7"><span class="line-num">7</span><span class="line-code">            <span class="syn-keyword">if</span> (height[left] &gt;= leftMax)</span></div>
+                    <div class="code-line" id="line-8"><span class="line-num">8</span><span class="line-code">                leftMax = height[left];</span></div>
+                    <div class="code-line" id="line-9"><span class="line-num">9</span><span class="line-code">            <span class="syn-keyword">else</span></span></div>
+                    <div class="code-line" id="line-10"><span class="line-num">10</span><span class="line-code">                total += leftMax - height[left];</span></div>
+                    <div class="code-line" id="line-11"><span class="line-num">11</span><span class="line-code">            left++;</span></div>
+                    <div class="code-line" id="line-12"><span class="line-num">12</span><span class="line-code">        } <span class="syn-keyword">else</span> {</span></div>
+                    <div class="code-line" id="line-13"><span class="line-num">13</span><span class="line-code">            <span class="syn-keyword">if</span> (height[right] &gt;= rightMax)</span></div>
+                    <div class="code-line" id="line-14"><span class="line-num">14</span><span class="line-code">                rightMax = height[right];</span></div>
+                    <div class="code-line" id="line-15"><span class="line-num">15</span><span class="line-code">            <span class="syn-keyword">else</span></span></div>
+                    <div class="code-line" id="line-16"><span class="line-num">16</span><span class="line-code">                total += rightMax - height[right];</span></div>
+                    <div class="code-line" id="line-17"><span class="line-num">17</span><span class="line-code">            right--;</span></div>
+                    <div class="code-line" id="line-18"><span class="line-num">18</span><span class="line-code">        }</span></div>
+                    <div class="code-line" id="line-19"><span class="line-num">19</span><span class="line-code">    }</span></div>
+                    <div class="code-line" id="line-20"><span class="line-num">20</span><span class="line-code">    <span class="syn-keyword">return</span> total;</span></div>
+                    <div class="code-line" id="line-21"><span class="line-num">21</span><span class="line-code">}</span></div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Help & Mathematical Invariant Modal -->
+    <div class="modal-overlay" id="help-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 style="font-size:1.2rem; font-weight:800; color:var(--cyan);">🧠 The Trapping Rain Water Invariant Explained</h2>
+                <button class="modal-close" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    At any column <code>i</code>, the trapped water is determined by the height of the shortest boundary bounding it from both sides:
+                </p>
+                <div class="formula-box">
+                    <code>Water[i] = max(0, min(max_left[i], max_right[i]) - height[i])</code>
+                </div>
+                <div class="modal-highlight">
+                    <strong style="color:var(--cyan);">💡 The Two-Pointer Breakthrough (From O(N) Space to O(1) Space):</strong>
+                    <br>
+                    Normally, calculating <code>max_left</code> and <code>max_right</code> requires two auxiliary arrays ($O(N)$ extra memory).
+                    <br><br>
+                    However, notice that if <code>height[left] &lt;= height[right]</code>:
+                    <ul style="margin-left: 20px; margin-top: 6px;">
+                        <li>We already know the maximum bar seen so far on the left is <code>leftMax</code>.</li>
+                        <li>We know that on the right side, there exists at least one bar with height <code>&gt;= height[right] &gt;= height[left]</code>.</li>
+                        <li>Therefore, <code>leftMax</code> is guaranteed to be smaller than or equal to the actual global right maximum!</li>
+                        <li>This means <code>min(max_left, max_right) = leftMax</code> without needing to inspect any of the unseen bars in the middle!</li>
+                    </ul>
+                </div>
+                <p>
+                    This rigorous mathematical property allows us to safely calculate the water at <code>left</code> and increment <code>left++</code> (or conversely at <code>right</code> and decrement <code>right--</code>) in a single linear pass $O(N)$ with $O(1)$ auxiliary variables.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+    (() => {
+        'use strict';
+
+        // DOM Helper
+        const $ = id => document.getElementById(id);
+
+        /* ==========================================================================
+           1. STATE MANAGEMENT
+           ========================================================================== */
+        let nums = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1];
+        let steps = [];
+        let currentStepIdx = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let playbackSpeed = 1000;
+        let rainEnabled = true;
+        let audioEnabled = true;
+
+        /* ==========================================================================
+           2. AUDIO SYNTHESIZER (Web Audio API)
+           ========================================================================== */
+        let audioCtx = null;
+        function playWaterDropSound(pitch = 600, volume = 0.2) {
+            if (!audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(pitch * 1.8, audioCtx.currentTime + 0.08);
+                osc.frequency.exponentialRampToValueAtTime(pitch * 0.5, audioCtx.currentTime + 0.18);
+
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.22);
+            } catch (e) {
+                console.warn('Audio error:', e);
+            }
+        }
+
+        /* ==========================================================================
+           3. THREE.JS 3D SCENE SETUP
+           ========================================================================== */
+        const canvas = $('three-canvas');
+        const visualizerBox = canvas.parentElement;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x060c18);
+        scene.fog = new THREE.FogExp2(0x060c18, 0.016);
+
+        const camera = new THREE.PerspectiveCamera(45, visualizerBox.clientWidth / visualizerBox.clientHeight, 0.1, 300);
+        camera.position.set(0, 16, 28);
+
+        const renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
+        renderer.setSize(visualizerBox.clientWidth, visualizerBox.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.15;
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't dip below ground
+        controls.minDistance = 8;
+        controls.maxDistance = 75;
+        controls.target.set(0, 2.5, 0);
+
+        /* ==========================================================================
+           4. LIGHTING & ENVIRONMENT
+           ========================================================================== */
+        const ambientLight = new THREE.AmbientLight(0xc8e1ff, 0.65);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
+        sunLight.position.set(-15, 30, 20);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 100;
+        const shadowSize = 30;
+        sunLight.shadow.camera.left = -shadowSize;
+        sunLight.shadow.camera.right = shadowSize;
+        sunLight.shadow.camera.top = shadowSize;
+        sunLight.shadow.camera.bottom = -shadowSize;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        const blueFillLight = new THREE.DirectionalLight(0x38bdf8, 0.6);
+        blueFillLight.position.set(20, 10, -10);
+        scene.add(blueFillLight);
+
+        // Active Focus Spotlight
+        const activeSpot = new THREE.SpotLight(0xfacc15, 3.5, 35, Math.PI / 6, 0.4, 1.5);
+        activeSpot.position.set(0, 20, 10);
+        activeSpot.castShadow = false;
+        scene.add(activeSpot);
+        scene.add(activeSpot.target);
+
+        /* ==========================================================================
+           5. GROUND, PEDESTAL & GRID
+           ========================================================================== */
+        const floorGeo = new THREE.PlaneGeometry(160, 120);
+        const floorMat = new THREE.MeshStandardMaterial({
+            color: 0x050c18,
+            roughness: 0.6,
+            metalness: 0.25
+        });
+        const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.position.y = -0.01;
+        floorMesh.receiveShadow = true;
+        scene.add(floorMesh);
+
+        const gridHelper = new THREE.GridHelper(120, 60, 0x1e3a5f, 0x0c1e33);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+
+        /* ==========================================================================
+           6. 3D OBJECT GROUPS & MATERIALS
+           ========================================================================== */
+        const pillarGroup = new THREE.Group();
+        const waterGroup = new THREE.Group();
+        const pointerGroup = new THREE.Group();
+        const laserGroup = new THREE.Group();
+        const rainGroup = new THREE.Group();
+        const labelGroup = new THREE.Group();
+
+        scene.add(pillarGroup);
+        scene.add(waterGroup);
+        scene.add(pointerGroup);
+        scene.add(laserGroup);
+        scene.add(rainGroup);
+        scene.add(labelGroup);
+
+        let pillarMeshes = [];
+        let waterMeshes = [];
+        let labelSprites = [];
+
+        // Materials
+        const normalPillarMat = new THREE.MeshStandardMaterial({
+            color: 0x33475b,
+            roughness: 0.4,
+            metalness: 0.35
+        });
+
+        const activePillarMat = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            emissive: 0xeab308,
+            emissiveIntensity: 0.6,
+            roughness: 0.2,
+            metalness: 0.4
+        });
+
+        const leftPillarMat = new THREE.MeshStandardMaterial({
+            color: 0x10b981,
+            emissive: 0x059669,
+            emissiveIntensity: 0.5,
+            roughness: 0.3,
+            metalness: 0.3
+        });
+
+        const rightPillarMat = new THREE.MeshStandardMaterial({
+            color: 0xf59e0b,
+            emissive: 0xd97706,
+            emissiveIntensity: 0.5,
+            roughness: 0.3,
+            metalness: 0.3
+        });
+
+        // Water Material (Physical Glass/Liquid appearance)
+        const waterMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x0ea5e9,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.25,
+            transmission: 0.65,
+            opacity: 0.88,
+            transparent: true,
+            roughness: 0.05,
+            metalness: 0.1,
+            ior: 1.333
+        });
+
+        /* ==========================================================================
+           7. 3D ATMOSPHERIC RAIN PARTICLES
+           ========================================================================== */
+        const RAIN_COUNT = 900;
+        const rainGeo = new THREE.BufferGeometry();
+        const rainPos = new Float32Array(RAIN_COUNT * 3);
+        const rainVel = new Float32Array(RAIN_COUNT);
+
+        for (let i = 0; i < RAIN_COUNT; i++) {
+            rainPos[i * 3 + 0] = (Math.random() - 0.5) * 60;
+            rainPos[i * 3 + 1] = Math.random() * 35;
+            rainPos[i * 3 + 2] = (Math.random() - 0.5) * 35;
+            rainVel[i] = 0.25 + Math.random() * 0.35;
+        }
+        rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+
+        const rainMat = new THREE.PointsMaterial({
+            color: 0x7dd3fc,
+            size: 0.18,
+            transparent: true,
+            opacity: 0.5,
+            blending: THREE.AdditiveBlending
+        });
+        const rainPoints = new THREE.Points(rainGeo, rainMat);
+        rainGroup.add(rainPoints);
+
+        /* ==========================================================================
+           8. 3D POINTER MARKERS (Animated 3D Arrows + Floating Badges)
+           ========================================================================== */
+        function create3DPointer(colorHex, nameText) {
+            const group = new THREE.Group();
+
+            // Downward Pointer Cone
+            const coneGeo = new THREE.ConeGeometry(0.4, 1.0, 16);
+            const coneMat = new THREE.MeshStandardMaterial({
+                color: colorHex,
+                emissive: colorHex,
+                emissiveIntensity: 0.7,
+                roughness: 0.2
+            });
+            const coneMesh = new THREE.Mesh(coneGeo, coneMat);
+            coneMesh.rotation.x = Math.PI; // Point Down
+            coneMesh.position.y = 0.5;
+            group.add(coneMesh);
+
+            // Shaft
+            const shaftGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 12);
+            const shaftMesh = new THREE.Mesh(shaftGeo, coneMat);
+            shaftMesh.position.y = 1.3;
+            group.add(shaftMesh);
+
+            // Halo Ring
+            const ringGeo = new THREE.TorusGeometry(0.65, 0.05, 8, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: colorHex, wireframe: true });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.rotation.x = Math.PI / 2;
+            ringMesh.position.y = 0.1;
+            group.add(ringMesh);
+
+            // Sprite Label Text
+            const canvasLabel = document.createElement('canvas');
+            canvasLabel.width = 256;
+            canvasLabel.height = 128;
+            const ctx = canvasLabel.getContext('2d');
+            ctx.fillStyle = colorHex === 0x10b981 ? '#10b981' : '#f59e0b';
+            ctx.font = 'bold 50px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(nameText, 128, 80);
+
+            const texture = new THREE.CanvasTexture(canvasLabel);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(2.2, 1.1, 1);
+            sprite.position.y = 2.2;
+            group.add(sprite);
+
+            group.userData.ring = ringMesh;
+            return group;
+        }
+
+        const leftPointer = create3DPointer(0x10b981, 'LEFT (L)');
+        const rightPointer = create3DPointer(0xf59e0b, 'RIGHT (R)');
+        pointerGroup.add(leftPointer);
+        pointerGroup.add(rightPointer);
+
+        /* ==========================================================================
+           9. 3D LASER BOUNDARY PLANES (LeftMax & RightMax visual reference ceilings)
+           ========================================================================= */
+        const laserMatLeft = new THREE.MeshBasicMaterial({
+            color: 0x10b981,
+            transparent: true,
+            opacity: 0.22,
+            side: THREE.DoubleSide
+        });
+
+        const laserMatRight = new THREE.MeshBasicMaterial({
+            color: 0xf59e0b,
+            transparent: true,
+            opacity: 0.22,
+            side: THREE.DoubleSide
+        });
+
+        const laserPlaneLeft = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.8), laserMatLeft);
+        laserPlaneLeft.rotation.x = Math.PI / 2;
+        laserGroup.add(laserPlaneLeft);
+
+        const laserPlaneRight = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.8), laserMatRight);
+        laserPlaneRight.rotation.x = Math.PI / 2;
+        laserGroup.add(laserPlaneRight);
+
+        /* ==========================================================================
+           10. ALGORITHM STEP-BY-STEP GENERATOR
+           ========================================================================== */
+        function generateTwoPointerSteps() {
+            steps = [];
+            const n = nums.length;
+            if (n < 2) return;
+
+            let left = 0;
+            let right = n - 1;
+            let leftMax = 0;
+            let rightMax = 0;
+            let totalWater = 0;
+            let cumulativeWaterArray = new Array(n).fill(0);
+
+            // Step 0: Initial State
+            steps.push({
+                stepIdx: 0,
+                codeLine: 4,
+                left: 0,
+                right: n - 1,
+                leftMax: 0,
+                rightMax: 0,
+                activeSide: 'none',
+                activeIdx: -1,
+                waterAdded: 0,
+                totalWater: 0,
+                waterGrid: [...cumulativeWaterArray],
+                title: 'Algorithm Initialized',
+                subtitle: 'Pointers placed at outer boundaries (L = 0, R = ' + (n - 1) + ')',
+                what: `Pointers initialized at the two ends: Left = 0 (height = ${nums[0]}), Right = ${n - 1} (height = ${nums[n - 1]}). leftMax = 0, rightMax = 0.`,
+                why: `We start from the outer boundaries because water can only be trapped between two enclosing walls. Moving inward guarantees that we consider all potential boundaries.`,
+                where: `No column evaluated yet.`,
+                when: `Compare height[left] and height[right] to determine which pointer to process first.`,
+                formula: `left = 0, right = ${n - 1}, leftMax = 0, rightMax = 0, total = 0`
+            });
+
+            while (left <= right) {
+                const isLeftShorter = nums[left] <= nums[right];
+                const activeIdx = isLeftShorter ? left : right;
+                const activeHeight = nums[activeIdx];
+
+                if (isLeftShorter) {
+                    const isNewMax = activeHeight >= leftMax;
+                    const oldLeftMax = leftMax;
+                    let added = 0;
+
+                    if (isNewMax) {
+                        leftMax = activeHeight;
+                        steps.push({
+                            stepIdx: steps.length,
+                            codeLine: 8,
+                            left: left,
+                            right: right,
+                            leftMax: leftMax,
+                            rightMax: rightMax,
+                            activeSide: 'left',
+                            activeIdx: left,
+                            waterAdded: 0,
+                            totalWater: totalWater,
+                            waterGrid: [...cumulativeWaterArray],
+                            title: `New Left Maximum at Index ${left}`,
+                            subtitle: `height[${left}] (${activeHeight}) >= leftMax (${oldLeftMax}) → Update leftMax`,
+                            what: `Comparing height[L=${left}] (${activeHeight}) <= height[R=${right}] (${nums[right]}). We process LEFT. Since ${activeHeight} >= leftMax (${oldLeftMax}), we update leftMax.`,
+                            why: `A new boundary wall is formed. Because this column is taller than or equal to previous left walls, it cannot hold water on top of itself from the left.`,
+                            where: `Column ${left} (Ground height: ${activeHeight}). Trapped: 0 units.`,
+                            when: `Advance Left pointer (left++) after updating leftMax.`,
+                            formula: `leftMax = max(${oldLeftMax}, ${activeHeight}) = ${leftMax} | Trapped = 0`
+                        });
+                    } else {
+                        added = leftMax - activeHeight;
+                        totalWater += added;
+                        cumulativeWaterArray[left] = added;
+
+                        steps.push({
+                            stepIdx: steps.length,
+                            codeLine: 10,
+                            left: left,
+                            right: right,
+                            leftMax: leftMax,
+                            rightMax: rightMax,
+                            activeSide: 'left',
+                            activeIdx: left,
+                            waterAdded: added,
+                            totalWater: totalWater,
+                            waterGrid: [...cumulativeWaterArray],
+                            title: `Water Trapped at Index ${left}`,
+                            subtitle: `height[${left}] (${activeHeight}) < leftMax (${leftMax}) → Holds ${added} unit(s)`,
+                            what: `Comparing height[L=${left}] (${activeHeight}) <= height[R=${right}] (${nums[right]}). We process LEFT.`,
+                            why: `Since height[L] <= height[R], we are guaranteed that a right boundary exists with height >= ${nums[right]} >= ${leftMax}. Thus, leftMax (${leftMax}) is the exact bottleneck height!`,
+                            where: `Column ${left} (Ground: ${activeHeight}, Water Ceiling: ${leftMax}). Holds ${added} unit(s).`,
+                            when: `Advance Left pointer (left++) inward to index ${left + 1}.`,
+                            formula: `Water = leftMax - height[left] = ${leftMax} - ${activeHeight} = ${added} unit(s)`
+                        });
+                    }
+                    left++;
+                } else {
+                    const isNewMax = activeHeight >= rightMax;
+                    const oldRightMax = rightMax;
+                    let added = 0;
+
+                    if (isNewMax) {
+                        rightMax = activeHeight;
+                        steps.push({
+                            stepIdx: steps.length,
+                            codeLine: 14,
+                            left: left,
+                            right: right,
+                            leftMax: leftMax,
+                            rightMax: rightMax,
+                            activeSide: 'right',
+                            activeIdx: right,
+                            waterAdded: 0,
+                            totalWater: totalWater,
+                            waterGrid: [...cumulativeWaterArray],
+                            title: `New Right Maximum at Index ${right}`,
+                            subtitle: `height[${right}] (${activeHeight}) >= rightMax (${oldRightMax}) → Update rightMax`,
+                            what: `Comparing height[L=${left}] (${nums[left]}) > height[R=${right}] (${activeHeight}). We process RIGHT. Since ${activeHeight} >= rightMax (${oldRightMax}), we update rightMax.`,
+                            why: `A new right boundary wall is established. It is taller than or equal to any wall seen from the right so far, so no water can sit on top of it.`,
+                            where: `Column ${right} (Ground height: ${activeHeight}). Trapped: 0 units.`,
+                            when: `Advance Right pointer (right--) inward after updating rightMax.`,
+                            formula: `rightMax = max(${oldRightMax}, ${activeHeight}) = ${rightMax} | Trapped = 0`
+                        });
+                    } else {
+                        added = rightMax - activeHeight;
+                        totalWater += added;
+                        cumulativeWaterArray[right] = added;
+
+                        steps.push({
+                            stepIdx: steps.length,
+                            codeLine: 16,
+                            left: left,
+                            right: right,
+                            leftMax: leftMax,
+                            rightMax: rightMax,
+                            activeSide: 'right',
+                            activeIdx: right,
+                            waterAdded: added,
+                            totalWater: totalWater,
+                            waterGrid: [...cumulativeWaterArray],
+                            title: `Water Trapped at Index ${right}`,
+                            subtitle: `height[${right}] (${activeHeight}) < rightMax (${rightMax}) → Holds ${added} unit(s)`,
+                            what: `Comparing height[L=${left}] (${nums[left]}) > height[R=${right}] (${activeHeight}). We process RIGHT.`,
+                            why: `Since height[R] < height[L], we are guaranteed that a left boundary exists with height >= ${nums[left]} >= ${rightMax}. Thus, rightMax (${rightMax}) is the exact bottleneck height!`,
+                            where: `Column ${right} (Ground: ${activeHeight}, Water Ceiling: ${rightMax}). Holds ${added} unit(s).`,
+                            when: `Advance Right pointer (right--) inward to index ${right - 1}.`,
+                            formula: `Water = rightMax - height[right] = ${rightMax} - ${activeHeight} = ${added} unit(s)`
+                        });
+                    }
+                    right--;
+                }
+            }
+
+            // Final Summary Step
+            steps.push({
+                stepIdx: steps.length,
+                codeLine: 20,
+                left: left,
+                right: right,
+                leftMax: leftMax,
+                rightMax: rightMax,
+                activeSide: 'complete',
+                activeIdx: -1,
+                waterAdded: 0,
+                totalWater: totalWater,
+                waterGrid: [...cumulativeWaterArray],
+                title: 'Simulation Complete 🎉',
+                subtitle: `Pointers met at index. Total water calculated: ${totalWater} units.`,
+                what: `Both pointers have met and traversed the entire terrain. All columns have been processed with optimal O(N) time and O(1) space.`,
+                why: `Every single position's water capacity was computed based on its definitive mathematical bottleneck.`,
+                where: `Entire array spanned [0 .. ${n - 1}].`,
+                when: `Return total trapped volume: ${totalWater}.`,
+                formula: `Total Trapped Water Volume = ${totalWater} units`
+            });
+        }
+
+        /* ==========================================================================
+           11. 3D PILLARS & WATER BLOCKS BUILDER
+           ========================================================================== */
+        const SPACING = 2.4;
+        const BAR_WIDTH = 1.4;
+
+        function build3DWorld() {
+            // Clear existing meshes
+            pillarGroup.clear();
+            waterGroup.clear();
+            labelGroup.clear();
+            pillarMeshes = [];
+            waterMeshes = [];
+            labelSprites = [];
+
+            const n = nums.length;
+            const centerOffset = (n - 1) * SPACING / 2;
+
+            nums.forEach((h, i) => {
+                const posX = i * SPACING - centerOffset;
+                const heightVal = Math.max(h, 0.12);
+
+                // Pillar Box
+                const boxGeo = new THREE.BoxGeometry(BAR_WIDTH, heightVal, BAR_WIDTH);
+                const pillar = new THREE.Mesh(boxGeo, normalPillarMat.clone());
+                pillar.position.set(posX, heightVal / 2, 0);
+                pillar.castShadow = true;
+                pillar.receiveShadow = true;
+                pillar.userData = { index: i, originalHeight: h, posX: posX };
+
+                pillarGroup.add(pillar);
+                pillarMeshes.push(pillar);
+
+                // Pillar Height Label Sprite
+                const labelCanvas = document.createElement('canvas');
+                labelCanvas.width = 128;
+                labelCanvas.height = 64;
+                const ctx = labelCanvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 36px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`h:${h}`, 64, 44);
+
+                const tex = new THREE.CanvasTexture(labelCanvas);
+                const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.85 });
+                const sprite = new THREE.Sprite(spriteMat);
+                sprite.scale.set(1.4, 0.7, 1);
+                sprite.position.set(posX, heightVal + 0.6, 0);
+                labelGroup.add(sprite);
+                labelSprites.push(sprite);
+
+                // Floor Index Badge Sprite
+                const indexCanvas = document.createElement('canvas');
+                indexCanvas.width = 128;
+                indexCanvas.height = 64;
+                const idxCtx = indexCanvas.getContext('2d');
+                idxCtx.fillStyle = '#64748b';
+                idxCtx.font = 'bold 32px JetBrains Mono, monospace';
+                idxCtx.textAlign = 'center';
+                idxCtx.fillText(`[${i}]`, 64, 44);
+
+                const idxTex = new THREE.CanvasTexture(indexCanvas);
+                const idxSpriteMat = new THREE.SpriteMaterial({ map: idxTex, transparent: true, opacity: 0.7 });
+                const idxSprite = new THREE.Sprite(idxSpriteMat);
+                idxSprite.scale.set(1.2, 0.6, 1);
+                idxSprite.position.set(posX, 0.35, BAR_WIDTH / 2 + 0.6);
+                labelGroup.add(idxSprite);
+
+                // Water Block Mesh (Initial Placeholder)
+                const waterGeo = new THREE.BoxGeometry(BAR_WIDTH * 0.96, 1, BAR_WIDTH * 0.96);
+                const waterMesh = new THREE.Mesh(waterGeo, waterMaterial.clone());
+                waterMesh.position.set(posX, h + 0.5, 0);
+                waterMesh.scale.set(1, 0.001, 1);
+                waterMesh.visible = false;
+                waterMesh.castShadow = false;
+                waterMesh.receiveShadow = true;
+                waterMesh.userData = { index: i, targetHeight: 0 };
+
+                waterGroup.add(waterMesh);
+                waterMeshes.push(waterMesh);
+            });
+
+            // Adjust OrbitControls target center
+            controls.target.set(0, 3, 0);
+        }
+
+        /* ==========================================================================
+           12. STEP RENDERING & SYNCHRONIZATION
+           ========================================================================== */
+        function applyStep(stepIdx, animateTransition = true) {
+            if (stepIdx < 0 || stepIdx >= steps.length) return;
+            currentStepIdx = stepIdx;
+            const state = steps[stepIdx];
+
+            const n = nums.length;
+            const centerOffset = (n - 1) * SPACING / 2;
+
+            // 1. Update Stats HUD
+            const leftH = state.left < n ? nums[state.left] : '-';
+            const rightH = state.right >= 0 ? nums[state.right] : '-';
+
+            $('stat-l-idx').textContent = state.left < n ? state.left : 'End';
+            $('stat-l-h').textContent = leftH;
+            $('stat-l-max').textContent = state.leftMax;
+
+            $('stat-r-idx').textContent = state.right >= 0 ? state.right : 'End';
+            $('stat-r-h').textContent = rightH;
+            $('stat-r-max').textContent = state.rightMax;
+
+            $('stat-total-water').textContent = state.totalWater;
+            $('banner-total').textContent = state.totalWater;
+
+            if (state.activeSide === 'left') {
+                $('stat-active-side').innerHTML = '<span style="color:#10b981;">LEFT (L)</span>';
+            } else if (state.activeSide === 'right') {
+                $('stat-active-side').innerHTML = '<span style="color:#f59e0b;">RIGHT (R)</span>';
+            } else if (state.activeSide === 'complete') {
+                $('stat-active-side').innerHTML = '<span style="color:#38bdf8;">DONE</span>';
+            } else {
+                $('stat-active-side').textContent = 'READY';
+            }
+
+            // 2. Update Timeline Slider & Indicators
+            $('timeline-slider').max = steps.length - 1;
+            $('timeline-slider').value = stepIdx;
+            $('lbl-step').textContent = stepIdx;
+            $('lbl-total-steps').textContent = steps.length - 1;
+            const pct = Math.round((stepIdx / (steps.length - 1 || 1)) * 100);
+            $('lbl-progress-pct').textContent = `${pct}%`;
+
+            // 3. Update 3D Pillar Highlights & Colors
+            pillarMeshes.forEach((mesh, idx) => {
+                if (idx === state.activeIdx) {
+                    mesh.material = activePillarMat;
+                } else if (idx === state.left) {
+                    mesh.material = leftPillarMat;
+                } else if (idx === state.right) {
+                    mesh.material = rightPillarMat;
+                } else {
+                    mesh.material = normalPillarMat;
+                }
+            });
+
+            // 4. Update 3D Water Volumes
+            state.waterGrid.forEach((wHeight, idx) => {
+                const wMesh = waterMeshes[idx];
+                const baseH = nums[idx];
+
+                if (wHeight > 0) {
+                    wMesh.visible = true;
+                    const finalY = baseH + wHeight / 2;
+
+                    if (animateTransition) {
+                        gsap.to(wMesh.scale, {
+                            y: wHeight,
+                            duration: 0.4,
+                            ease: 'power2.out'
+                        });
+                        gsap.to(wMesh.position, {
+                            y: finalY,
+                            duration: 0.4,
+                            ease: 'power2.out'
+                        });
+                    } else {
+                        wMesh.scale.y = wHeight;
+                        wMesh.position.y = finalY;
+                    }
+                } else {
+                    if (animateTransition) {
+                        gsap.to(wMesh.scale, { y: 0.001, duration: 0.2 });
+                    } else {
+                        wMesh.scale.y = 0.001;
+                    }
+                }
+            });
+
+            // Play SFX if water added
+            if (state.waterAdded > 0 && animateTransition) {
+                playWaterDropSound(440 + state.waterAdded * 80, 0.25);
+            }
+
+            // 5. Update 3D Pointers Positions
+            if (state.left < n) {
+                const leftX = state.left * SPACING - centerOffset;
+                const leftY = nums[state.left] + 1.2;
+                leftPointer.visible = true;
+                if (animateTransition) {
+                    gsap.to(leftPointer.position, { x: leftX, y: leftY, z: 0, duration: 0.35 });
+                } else {
+                    leftPointer.position.set(leftX, leftY, 0);
+                }
+            } else {
+                leftPointer.visible = false;
+            }
+
+            if (state.right >= 0 && state.right < n) {
+                const rightX = state.right * SPACING - centerOffset;
+                const rightY = nums[state.right] + 1.2;
+                rightPointer.visible = true;
+                if (animateTransition) {
+                    gsap.to(rightPointer.position, { x: rightX, y: rightY, z: 0, duration: 0.35 });
+                } else {
+                    rightPointer.position.set(rightX, rightY, 0);
+                }
+            } else {
+                rightPointer.visible = false;
+            }
+
+            // 6. Update 3D Laser Boundary Planes
+            if (state.leftMax > 0 && state.left < n) {
+                const leftLaserWidth = (state.left + 0.5) * SPACING;
+                laserPlaneLeft.visible = true;
+                laserPlaneLeft.scale.set(leftLaserWidth, 1, 1);
+                laserPlaneLeft.position.set(-centerOffset + leftLaserWidth / 2 - SPACING / 2, state.leftMax, 0);
+            } else {
+                laserPlaneLeft.visible = false;
+            }
+
+            if (state.rightMax > 0 && state.right >= 0) {
+                const rightLaserWidth = (n - state.right + 0.5) * SPACING;
+                laserPlaneRight.visible = true;
+                laserPlaneRight.scale.set(rightLaserWidth, 1, 1);
+                laserPlaneRight.position.set(centerOffset - rightLaserWidth / 2 + SPACING / 2, state.rightMax, 0);
+            } else {
+                laserPlaneRight.visible = false;
+            }
+
+            // 7. Spotlight on Active Column
+            if (state.activeIdx >= 0) {
+                const actX = state.activeIdx * SPACING - centerOffset;
+                activeSpot.target.position.set(actX, nums[state.activeIdx], 0);
+                gsap.to(activeSpot.position, { x: actX, y: 14, z: 8, duration: 0.4 });
+            }
+
+            // 8. Update Educational 5-Questions UI
+            $('exp-step-title').textContent = state.title;
+            $('exp-step-sub').textContent = state.subtitle;
+            $('qa-what-text').textContent = state.what;
+            $('qa-why-text').textContent = state.why;
+            $('qa-where-text').textContent = state.where;
+            $('qa-when-text').textContent = state.when;
+            $('formula-text').textContent = state.formula;
+
+            // Comparison box
+            if (state.left < n && state.right >= 0) {
+                $('comp-l-val').textContent = `height[${state.left}] = ${nums[state.left]}`;
+                $('comp-r-val').textContent = `height[${state.right}] = ${nums[state.right]}`;
+                if (nums[state.left] <= nums[state.right]) {
+                    $('comp-op').textContent = '≤ (Process Left)';
+                    $('comp-op').style.color = '#10b981';
+                } else {
+                    $('comp-op').textContent = '> (Process Right)';
+                    $('comp-op').style.color = '#f59e0b';
+                }
+            } else {
+                $('comp-l-val').textContent = '—';
+                $('comp-r-val').textContent = '—';
+                $('comp-op').textContent = 'Complete';
+                $('comp-op').style.color = '#38bdf8';
+            }
+
+            // Toast in canvas
+            $('toast-text').textContent = state.title + ' — ' + state.subtitle;
+
+            // 9. Highlight Synced C++ Code Line
+            document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active-line'));
+            if (state.codeLine) {
+                const lineEl = $(`line-${state.codeLine}`);
+                if (lineEl) {
+                    lineEl.classList.add('active-line');
+                    lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
+            // 10. Check if completion step
+            if (stepIdx === steps.length - 1 && state.totalWater > 0) {
+                $('celebration-banner').classList.add('show');
+                try {
+                    confetti({
+                        particleCount: 60,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                } catch (e) {}
+            } else {
+                $('celebration-banner').classList.remove('show');
+            }
+        }
+
+        /* ==========================================================================
+           13. PLAYBACK CONTROLS & TIMERS
+           ========================================================================== */
+        function nextStep() {
+            if (currentStepIdx < steps.length - 1) {
+                applyStep(currentStepIdx + 1);
+            } else {
+                pausePlay();
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIdx > 0) {
+                applyStep(currentStepIdx - 1);
+            }
+        }
+
+        function resetSimulation() {
+            pausePlay();
+            applyStep(0);
+        }
+
+        function startPlay() {
+            if (currentStepIdx >= steps.length - 1) {
+                applyStep(0);
+            }
+            isPlaying = true;
+            $('btn-play').textContent = '⏸ Pause';
+            $('btn-play').classList.add('btn-primary');
+
+            clearInterval(playInterval);
+            playInterval = setInterval(() => {
+                if (currentStepIdx < steps.length - 1) {
+                    nextStep();
+                } else {
+                    pausePlay();
+                }
+            }, playbackSpeed);
+        }
+
+        function pausePlay() {
+            isPlaying = false;
+            $('btn-play').textContent = '▶ Play';
+            clearInterval(playInterval);
+            playInterval = null;
+        }
+
+        function togglePlay() {
+            if (isPlaying) pausePlay();
+            else startPlay();
+        }
+
+        /* ==========================================================================
+           14. CAMERA PRESETS CONTROLLER
+           ========================================================================== */
+        function setCameraPreset(mode) {
+            document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
+            $(`cam-${mode}`).classList.add('active');
+
+            const n = nums.length;
+            const dist = Math.max(n * 2.2, 24);
+
+            if (mode === '3d') {
+                gsap.to(camera.position, { x: 0, y: 16, z: dist, duration: 1, ease: 'power2.inOut' });
+                gsap.to(controls.target, { x: 0, y: 2.5, z: 0, duration: 1, ease: 'power2.inOut' });
+            } else if (mode === 'front') {
+                gsap.to(camera.position, { x: 0, y: 3.5, z: dist * 1.1, duration: 1, ease: 'power2.inOut' });
+                gsap.to(controls.target, { x: 0, y: 3.5, z: 0, duration: 1, ease: 'power2.inOut' });
+            } else if (mode === 'top') {
+                gsap.to(camera.position, { x: 0, y: dist * 1.2, z: 0.1, duration: 1, ease: 'power2.inOut' });
+                gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1, ease: 'power2.inOut' });
+            } else if (mode === 'focus') {
+                const state = steps[currentStepIdx];
+                if (state && state.activeIdx >= 0) {
+                    const centerOffset = (n - 1) * SPACING / 2;
+                    const actX = state.activeIdx * SPACING - centerOffset;
+                    gsap.to(camera.position, { x: actX, y: 7, z: 12, duration: 0.8, ease: 'power2.inOut' });
+                    gsap.to(controls.target, { x: actX, y: nums[state.activeIdx] / 2, z: 0, duration: 0.8, ease: 'power2.inOut' });
+                }
+            }
+        }
+
+        /* ==========================================================================
+           15. ARRAY LOADING & PRESET DISPATCHER
+           ========================================================================== */
+        function loadNewArray(newNums) {
+            if (!Array.isArray(newNums) || newNums.length < 2) {
+                alert('Please provide an array with at least 2 non-negative numbers.');
+                return;
+            }
+            pausePlay();
+            nums = newNums.map(x => Math.max(0, parseInt(x) || 0)).slice(0, 22);
+            $('custom-array-input').value = nums.join(',');
+
+            generateTwoPointerSteps();
+            build3DWorld();
+            applyStep(0, false);
+            setCameraPreset('3d');
+        }
+
+        /* ==========================================================================
+           16. ANIMATION LOOP
+           ========================================================================== */
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const elapsed = clock.getElapsedTime();
+
+            // 1. Controls Update
+            controls.update();
+
+            // 2. Animate Pointers Bobbing & Rings Rotation
+            if (leftPointer.visible) {
+                leftPointer.position.y += Math.sin(elapsed * 4.5) * 0.008;
+                if (leftPointer.userData.ring) leftPointer.userData.ring.rotation.z += 0.03;
+            }
+            if (rightPointer.visible) {
+                rightPointer.position.y += Math.sin(elapsed * 4.5 + 1.5) * 0.008;
+                if (rightPointer.userData.ring) rightPointer.userData.ring.rotation.z -= 0.03;
+            }
+
+            // 3. Water Surface Ripple Waves
+            waterMeshes.forEach((w, idx) => {
+                if (w.visible && w.scale.y > 0.05) {
+                    const ripple = Math.sin(elapsed * 3 + idx * 0.8) * 0.015;
+                    w.position.y = (nums[idx] + w.scale.y / 2) + ripple;
+                }
+            });
+
+            // 4. Rain Particles Animation
+            if (rainEnabled) {
+                const pos = rainGeo.attributes.position.array;
+                for (let i = 0; i < RAIN_COUNT; i++) {
+                    pos[i * 3 + 1] -= rainVel[i];
+                    if (pos[i * 3 + 1] < 0) {
+                        pos[i * 3 + 1] = 30 + Math.random() * 5;
+                    }
+                }
+                rainGeo.attributes.position.needsUpdate = true;
+                rainGroup.visible = true;
+            } else {
+                rainGroup.visible = false;
+            }
+
+            // 5. Render Scene
+            renderer.render(scene, camera);
+        }
+
+        /* ==========================================================================
+           17. EVENT LISTENERS
+           ========================================================================== */
+        // Playback button events
+        $('btn-next').addEventListener('click', nextStep);
+        $('btn-prev').addEventListener('click', prevStep);
+        $('btn-play').addEventListener('click', togglePlay);
+        $('btn-reset').addEventListener('click', resetSimulation);
+        $('btn-first').addEventListener('click', () => applyStep(0));
+        $('btn-last').addEventListener('click', () => applyStep(steps.length - 1));
+
+        // Timeline slider
+        $('timeline-slider').addEventListener('input', (e) => {
+            pausePlay();
+            applyStep(parseInt(e.target.value), false);
+        });
+
+        // Speed buttons
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                playbackSpeed = parseInt(btn.getAttribute('data-speed'));
+                if (isPlaying) {
+                    startPlay();
+                }
+            });
+        });
+
+        // Camera buttons
+        $('cam-3d').addEventListener('click', () => setCameraPreset('3d'));
+        $('cam-front').addEventListener('click', () => setCameraPreset('front'));
+        $('cam-top').addEventListener('click', () => setCameraPreset('top'));
+        $('cam-focus').addEventListener('click', () => setCameraPreset('focus'));
+
+        // Preset buttons
+        document.querySelectorAll('.preset-pill[data-array]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.preset-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const arr = btn.getAttribute('data-array').split(',').map(Number);
+                loadNewArray(arr);
+            });
+        });
+
+        // Random generator
+        $('btn-random').addEventListener('click', () => {
+            document.querySelectorAll('.preset-pill').forEach(b => b.classList.remove('active'));
+            $('btn-random').classList.add('active');
+            const len = 8 + Math.floor(Math.random() * 7);
+            const randArr = Array.from({ length: len }, () => Math.floor(Math.random() * 6));
+            loadNewArray(randArr);
+        });
+
+        // Custom array apply
+        $('btn-apply-array').addEventListener('click', () => {
+            const raw = $('custom-array-input').value;
+            const parsed = raw.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+            loadNewArray(parsed);
+        });
+
+        $('custom-array-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') $('btn-apply-array').click();
+        });
+
+        // Rain & Audio Toggles
+        $('rain-toggle').addEventListener('click', () => {
+            rainEnabled = !rainEnabled;
+            $('rain-toggle').classList.toggle('active', rainEnabled);
+        });
+        $('rain-toggle').classList.add('active');
+
+        $('audio-toggle').addEventListener('click', () => {
+            audioEnabled = !audioEnabled;
+            $('audio-toggle').classList.toggle('active', audioEnabled);
+            $('audio-toggle').textContent = audioEnabled ? '🔊' : '🔇';
+        });
+        $('audio-toggle').classList.add('active');
+
+        // Help Modal
+        $('help-btn').addEventListener('click', () => {
+            $('help-modal').style.display = 'flex';
+        });
+        $('modal-close-btn').addEventListener('click', () => {
+            $('help-modal').style.display = 'none';
+        });
+        $('help-modal').addEventListener('click', (e) => {
+            if (e.target === $('help-modal')) $('help-modal').style.display = 'none';
+        });
+
+        // Window Resize
+        function onWindowResize() {
+            const w = visualizerBox.clientWidth;
+            const h = visualizerBox.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        // Keyboard navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextStep();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevStep();
+            } else if (e.key === 'p' || e.key === 'P') {
+                togglePlay();
+            } else if (e.key === 'r' || e.key === 'R') {
+                resetSimulation();
+            }
+        });
+
+        /* ==========================================================================
+           18. INITIAL STARTUP
+           ========================================================================== */
+        generateTwoPointerSteps();
+        build3DWorld();
+        applyStep(0, false);
+        animate();
+
+    })();
+    </script>
+</body>
+</html>
